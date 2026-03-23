@@ -6,6 +6,7 @@
 /// 这带来一个重要特性：任务列表持久化到文件，即使上下文被截断，
 /// Claude 也可以通过 TodoRead 重新加载当前任务状态。
 
+#[cfg(test)]
 mod tests;
 
 use std::path::{Path, PathBuf};
@@ -35,6 +36,17 @@ impl std::fmt::Display for TaskState {
     }
 }
 
+impl TaskState {
+    fn display(&self) -> String {
+        match self {
+            TaskState::Pending => "[ ]",
+            TaskState::InProgress => "[→]",
+            TaskState::Completed => "[✓]",
+        }
+        .to_string()
+    }
+}
+
 // ── Task ──────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -51,6 +63,13 @@ impl Task {
             description: description.into(),
             state: TaskState::Pending,
         }
+    }
+
+    pub fn display(&self) -> String {
+        let state = self.state.display();
+        let id = &self.id;
+        let description = &self.description;
+        format!("{state} {id} {description}")
     }
 }
 
@@ -72,7 +91,11 @@ impl TaskList {
         let path = path.as_ref().to_path_buf();
         let tasks = if path.exists() {
             let content = std::fs::read_to_string(&path)?;
-            serde_json::from_str(&content)?
+            if content.trim().is_empty() {
+                vec![]
+            } else {
+                serde_json::from_str(&content)?
+            }
         } else {
             vec![]
         };
@@ -86,9 +109,13 @@ impl TaskList {
     ///   Claude 每次 TodoWrite 时传入完整列表，harness 直接覆盖存储。
     ///   这比维护 diff 简单得多，且对 Claude 的认知负担更小。
     pub fn write(&mut self, tasks: Vec<Task>) -> Result<(), anyhow::Error> {
-        // TODO: 更新 self.tasks，然后持久化到 self.path
+        // 更新 self.tasks，然后持久化到 self.path
         // 提示：serde_json::to_string_pretty(&self.tasks)?
-        todo!("替换任务列表并写入文件")
+        self.tasks = tasks;
+        let contents = serde_json::to_string_pretty(&self.tasks)?;
+        std::fs::write(&self.path, contents)?;
+
+        Ok(())
     }
 
     /// 以人类可读格式返回当前任务列表（TodoRead 的输出）
@@ -99,11 +126,15 @@ impl TaskList {
     ///   [→] 2. 实现核心功能
     ///   [✓] 3. 编写测试
     pub fn display(&self) -> String {
-        // TODO: 遍历 self.tasks，根据 state 选择对应的符号
+        // 遍历 self.tasks，根据 state 选择对应的符号
         // pending      → [ ]
         // in_progress  → [→]
         // completed    → [✓]
-        todo!("格式化任务列表")
+        self.tasks()
+            .iter()
+            .map(|task| task.display())
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 
     pub fn tasks(&self) -> &[Task] {

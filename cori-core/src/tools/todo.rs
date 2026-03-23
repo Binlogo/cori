@@ -5,10 +5,12 @@
 ///   TodoRead ：Claude 用来查看当前任务状态（只读）
 ///
 /// Exercise 4：补全两个工具的 execute() 实现。
-
 use std::sync::{Arc, Mutex};
 
-use crate::{planner::TaskList, tools::Tool};
+use crate::{
+    planner::{Task, TaskList},
+    tools::Tool,
+};
 
 // ── TodoRead ──────────────────────────────────────────────────────────────────
 
@@ -30,7 +32,12 @@ impl Tool for TodoReadTool {
     fn execute(&self, _input: &serde_json::Value) -> Result<String, anyhow::Error> {
         // TODO: 锁住 self.list，调用 display()，返回结果
         // 如果任务列表为空，返回 "No tasks." 而不是空字符串
-        todo!("返回当前任务列表的文本表示")
+        let list = self.list.lock().unwrap();
+        if list.tasks().is_empty() {
+            Ok("No  tasks".to_string())
+        } else {
+            Ok(list.display())
+        }
     }
 
     fn schema(&self) -> serde_json::Value {
@@ -70,12 +77,15 @@ impl Tool for TodoWriteTool {
     ///   ]
     /// }
     fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error> {
-        // TODO：
         //   1. 从 input["tasks"] 反序列化出 Vec<Task>
         //      提示：serde_json::from_value(input["tasks"].clone())?
         //   2. 调用 self.list.lock().unwrap().write(tasks)?
         //   3. 返回 "Tasks updated." 作为确认
-        todo!("解析任务列表并写入")
+        let tasks = serde_json::from_value(input["tasks"].clone())?;
+
+        self.list.lock().unwrap().write(tasks)?;
+
+        Ok("Tasks updated".to_string())
     }
 
     fn schema(&self) -> serde_json::Value {
