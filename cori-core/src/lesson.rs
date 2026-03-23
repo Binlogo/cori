@@ -9,9 +9,16 @@ pub struct Lesson {
 /// The full lesson catalog.
 /// Add a new entry here when you start a new session.
 pub fn catalog() -> Vec<Lesson> {
-    vec![Lesson {
-        id: "01-agent-loop",
-        title: "Session 01 · The Agent Loop",
-        description: "One loop & one tool — that's all an agent is.",
-    }]
+    vec![
+        Lesson {
+            id: "01-agent-loop",
+            title: "Session 01 · The Agent Loop",
+            description: "One loop & one tool — that's all an agent is.",
+        },
+        Lesson {
+            id: "02-tool-dispatch",
+            title: "Session 02 · Tool Dispatch",
+            description: "Tools aren't magic — they're a dispatch map.",
+        },
+    ]
 }

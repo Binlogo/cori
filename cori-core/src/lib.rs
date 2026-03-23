@@ -10,3 +10,6 @@ pub mod lesson;
 pub mod types;
 pub mod loop_;
 mod loop_test;
+
+// Session 02
+pub mod tools;

@@ -99,8 +99,8 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
                 let mut tool_results = vec![];
                 for call in response.tool_calls {
                     let tool_result = self.executor.execute(&call).await?;
-                    tool_results.push(tool_result);
                     messages.push(Message::tool_use(call));
+                    tool_results.push(tool_result);
                 }
                 let tool_message = Message::tool_results(tool_results);
                 messages.push(tool_message);
