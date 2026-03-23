@@ -16,3 +16,4 @@ async-trait = { workspace = true }
 [dev-dependencies]
 tokio = { workspace = true }
 tempfile = "3"
+tracing-subscriber = { workspace = true }

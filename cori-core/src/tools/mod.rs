@@ -6,8 +6,8 @@
 ///   - `ToolRegistry` 负责注册和分发
 pub mod bash;
 pub mod subagent;
-pub mod todo;
 mod tests;
+pub mod todo;
 
 use std::collections::HashMap;
 

@@ -18,8 +18,7 @@
 ///
 /// 子 Agent 的工具集也是独立的，默认只有 BashTool（无状态工具）。
 /// TodoTools 不传给子 Agent——子 Agent 没有持久化需求。
-
-use crate::tools::{Tool, bash::BashTool};
+use crate::tools::{bash::BashTool, Tool, ToolRegistry};
 
 pub struct SubagentTool;
 
@@ -48,7 +47,7 @@ impl Tool for SubagentTool {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing 'task' field"))?;
 
-        // TODO: 创建子 Agent 并运行
+        // 创建子 Agent 并运行
         //
         // let mut registry = ToolRegistry::new();
         // registry.register(BashTool);
@@ -56,7 +55,14 @@ impl Tool for SubagentTool {
         // let mut agent = crate::loop_::AgentLoop::new(llm, registry);
         // agent.run(task).await
 
-        todo!("spawn subagent for task: {task}")
+        let mut registry = ToolRegistry::new();
+        registry.register(BashTool);
+        let llm = crate::claude::ClaudeLlm::from_env(registry.all_schemas())?;
+        let mut agent = crate::loop_::AgentLoop::new(llm, registry);
+
+        let result = agent.run(task).await?;
+
+        Ok(result)
     }
 
     fn schema(&self) -> serde_json::Value {

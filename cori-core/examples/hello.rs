@@ -7,38 +7,50 @@ use cori_core::{
     tools::{
         ToolRegistry,
         bash::BashTool,
+        subagent::SubagentTool,
         todo::{TodoReadTool, TodoWriteTool},
     },
 };
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // 任务列表持久化到当前目录，重启后状态保留
+    // 开启日志，能看到每次工具调用
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
     let task_list = Arc::new(Mutex::new(TaskList::load(".cori_tasks.json")?));
 
     let mut registry = ToolRegistry::new();
     registry.register(BashTool);
     registry.register(TodoReadTool::new(Arc::clone(&task_list)));
     registry.register(TodoWriteTool::new(Arc::clone(&task_list)));
+    registry.register(SubagentTool);
 
     let llm = ClaudeLlm::from_env(registry.all_schemas())?;
     let mut agent = AgentLoop::new(llm, registry);
 
-    // 给 Claude 一个需要多步完成的任务，观察它是否主动调用 TodoWrite 规划
+    // Prompt 设计要点：
+    //   1. 明确要求用 spawn_subagent（否则 Claude 会直接用 bash 一次做完）
+    //   2. 三个子任务彼此独立，适合并行委托
+    //   3. 要求最后汇总，让父 Agent 有"整合结果"的角色
     let answer = agent
         .run(
-            "请帮我了解一下当前项目的结构：\
-            1. 列出根目录的文件和文件夹 \
-            2. 查看 Cargo.toml 的内容 \
-            3. 统计 src 目录下有多少个 .rs 文件 \
-            请先用 todo_write 列出你的计划，再逐步执行。",
+            "请完成以下工作，要求：\
+            - 先用 todo_write 列出三个子任务的计划 \
+            - 然后对每个子任务分别调用 spawn_subagent 执行（每次只传一个独立子任务） \
+            - 最后汇总三个子 Agent 的结果 \
+            \n\
+            三个子任务：\
+            \n1. 统计这个 Rust 项目里有多少个 .rs 源文件（在 cori-core/src 下）\
+            \n2. 找出代码中用了哪些外部 crate（查看 cori-core/Cargo.toml 的 [dependencies]）\
+            \n3. 数一数项目里有多少个 #[cfg(test)] 测试模块",
         )
         .await?;
 
-    println!("{answer}");
+    println!("\n{answer}");
 
-    // 打印最终任务列表状态
-    println!("\n── 任务列表 ──");
+    println!("\n── 最终任务列表 ──");
     println!("{}", task_list.lock().unwrap().display());
 
     Ok(())

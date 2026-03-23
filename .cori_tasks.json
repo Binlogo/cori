@@ -1,17 +1,17 @@
 [
   {
     "id": "1",
-    "description": "列出根目录的文件和文件夹",
-    "state": "completed"
+    "description": "统计 cori-core/src 目录下有多少个 .rs 源文件",
+    "state": "pending"
   },
   {
     "id": "2",
-    "description": "查看 Cargo.toml 的内容",
-    "state": "completed"
+    "description": "查看 cori-core/Cargo.toml 的 [dependencies] 部分，找出所有外部 crate 依赖",
+    "state": "pending"
   },
   {
     "id": "3",
-    "description": "统计 src 目录下有多少个 .rs 文件",
-    "state": "completed"
+    "description": "统计项目中所有 #[cfg(test)] 测试模块的数量",
+    "state": "pending"
   }
 ]
