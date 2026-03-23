@@ -169,6 +169,12 @@ cori/
 
 ---
 
+## 致谢
+
+本项目的课程结构和核心思路受到 [learn-claude-code](https://github.com/shareAI-lab/learn-claude-code) 的启发，感谢其对 Claude Code 工作原理的系统性梳理。
+
+---
+
 ## License
 
 MIT
