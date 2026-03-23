@@ -36,15 +36,13 @@ async fn main() -> anyhow::Result<()> {
     //   3. 要求最后汇总，让父 Agent 有"整合结果"的角色
     let answer = agent
         .run(
-            "请完成以下工作，要求：\
-            - 先用 todo_write 列出三个子任务的计划 \
-            - 然后对每个子任务分别调用 spawn_subagent 执行（每次只传一个独立子任务） \
-            - 最后汇总三个子 Agent 的结果 \
+            "请严格按以下步骤完成工作：\
             \n\
-            三个子任务：\
-            \n1. 统计这个 Rust 项目里有多少个 .rs 源文件（在 cori-core/src 下）\
-            \n2. 找出代码中用了哪些外部 crate（查看 cori-core/Cargo.toml 的 [dependencies]）\
-            \n3. 数一数项目里有多少个 #[cfg(test)] 测试模块",
+            \n步骤 1：用 todo_write 创建三条任务，状态均为 pending \
+            \n步骤 2：将任务 1 改为 in_progress，用 spawn_subagent 执行：统计 cori-core/src 下有多少个 .rs 文件 \
+            \n步骤 3：将任务 1 改为 completed，将任务 2 改为 in_progress，用 spawn_subagent 执行：查看 cori-core/Cargo.toml 的 [dependencies] 列出所有依赖 \
+            \n步骤 4：将任务 2 改为 completed，将任务 3 改为 in_progress，用 spawn_subagent 执行：统计项目中有多少个 #[cfg(test)] \
+            \n步骤 5：将任务 3 改为 completed，汇总三个子 Agent 的结果",
         )
         .await?;
 

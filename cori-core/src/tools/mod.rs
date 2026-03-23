@@ -67,13 +67,16 @@ impl ToolRegistry {
     pub async fn dispatch(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
         let id = call.id.clone();
         let Some(tool) = self.tools.get(&call.name) else {
+            tracing::warn!(tool = %call.name, "unknown tool");
             return Ok(ToolResult {
                 content: "unknown tool".into(),
                 tool_use_id: id,
             });
         };
 
+        tracing::info!(tool = %call.name, "→ call");
         let result = tool.execute(&call.input).await?;
+        tracing::info!(tool = %call.name, "← done");
 
         Ok(ToolResult {
             content: result,
