@@ -12,6 +12,7 @@ tracing = { workspace = true }
 thiserror = "2"
 reqwest = { workspace = true }
 async-trait = { workspace = true }
+glob = "0.3"
 
 [dev-dependencies]
 tokio = { workspace = true }

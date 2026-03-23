@@ -10,6 +10,7 @@ use cori_core::{
     planner::TaskList,
     tools::{
         bash::BashTool,
+        fs::{GlobTool, GrepTool, ReadFileTool, WriteFileTool},
         todo::{TodoReadTool, TodoWriteTool},
         ToolRegistry,
     },
@@ -151,6 +152,11 @@ async fn main() -> anyhow::Result<()> {
     registry.register(BashTool);
     registry.register(TodoReadTool::new(Arc::clone(&task_list)));
     registry.register(TodoWriteTool::new(Arc::clone(&task_list)));
+    // Session 07：文件系统工具
+    registry.register(ReadFileTool);
+    registry.register(WriteFileTool);
+    registry.register(GlobTool);
+    registry.register(GrepTool);
 
     // 先获取 schemas，再把 registry 移入 executor
     let schemas = registry.all_schemas();
