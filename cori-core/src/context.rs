@@ -5,7 +5,6 @@
 ///
 /// 这一节实现一个简单但有效的截断策略：
 ///   保留第 0 条消息（原始用户请求）+ 最近 N 条消息
-
 use crate::types::Message;
 
 // ── ContextManager ────────────────────────────────────────────────────────────
@@ -20,7 +19,10 @@ pub struct ContextManager {
 
 impl ContextManager {
     pub fn new(token_threshold: u32, keep_last: usize) -> Self {
-        Self { token_threshold, keep_last }
+        Self {
+            token_threshold,
+            keep_last,
+        }
     }
 
     /// 默认配置：80k token 触发截断，保留最近 20 条
@@ -48,7 +50,6 @@ impl ContextManager {
     ///   before: [msg0, msg1, msg2, msg3, msg4, msg5, msg6]  keep_last=3
     ///   after:  [msg0, msg4, msg5, msg6]
     pub fn truncate(&self, messages: &mut Vec<Message>) {
-        // TODO：
         // 条件：messages.len() > 1 + self.keep_last 时才需要截断
         // 操作：保留 messages[0]，再保留末尾 keep_last 条
         //
@@ -56,7 +57,11 @@ impl ContextManager {
         //   let tail = messages.split_off(messages.len() - self.keep_last);
         //   messages.truncate(1);
         //   messages.extend(tail);
-        todo!("实现截断逻辑")
+        if messages.len() > 1 + self.keep_last {
+            let tail = messages.split_off(messages.len() - self.keep_last);
+            messages.truncate(1);
+            messages.extend(tail);
+        }
     }
 }
 
@@ -94,7 +99,7 @@ mod tests {
         ctx.truncate(&mut messages);
 
         assert_eq!(messages.len(), 4); // msg0 + msg4,5,6
-        // 第 0 条还是原始的 msg0
+                                       // 第 0 条还是原始的 msg0
         if let crate::types::Content::Text { text } = &messages[0].content[0] {
             assert_eq!(text, "msg 0");
         }

@@ -6,7 +6,10 @@ use anyhow::anyhow;
 /// 实现 Agent Loop 的骨架。
 ///
 /// 这个文件是课程的核心。先通读注释，再动手填 TODO。
-use crate::{context::ContextManager, types::{Message, ToolResult, ToolUse}};
+use crate::{
+    context::ContextManager,
+    types::{Message, ToolResult, ToolUse},
+};
 
 // ── 错误类型 ──────────────────────────────────────────────────────────────────
 
@@ -106,9 +109,14 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
             turn += 1;
 
             // Exercise 2：在发送前检查是否需要截断
-            // TODO: 用 self.context.should_truncate(last_input_tokens) 判断，
+            // 用 self.context.should_truncate(last_input_tokens) 判断，
             //       为真时调用 self.context.truncate(&mut messages)
             //       截断后打印一条 tracing::warn! 告知用户上下文被压缩了
+
+            if self.context.should_truncate(last_input_tokens) {
+                self.context.truncate(&mut messages);
+                tracing::warn!("Context truncate");
+            }
 
             let response = self.llm.send(&messages).await?;
             last_input_tokens = response.usage.input_tokens;
