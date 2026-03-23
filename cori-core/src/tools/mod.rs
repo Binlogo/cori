@@ -4,9 +4,10 @@
 /// 这一节，我们把它替换成真正的 Tool 系统：
 ///   - 每个工具实现 `Tool` trait
 ///   - `ToolRegistry` 负责注册和分发
-
 pub mod bash;
 mod tests;
+
+use std::collections::HashMap;
 
 use crate::types::{ToolResult, ToolUse};
 
@@ -42,8 +43,9 @@ pub trait Tool: Send + Sync {
 /// Exercise 3：实现 `all_schemas()`，把所有工具的 schema 收集起来。
 #[derive(Default)]
 pub struct ToolRegistry {
-    // TODO: 选择合适的数据结构存储工具
+    // 选择合适的数据结构存储工具
     // 提示：需要通过名字快速查找
+    tools: HashMap<String, Box<dyn Tool>>,
 }
 
 impl ToolRegistry {
@@ -53,8 +55,7 @@ impl ToolRegistry {
 
     /// 注册一个工具。
     pub fn register(&mut self, tool: impl Tool + 'static) {
-        // TODO
-        todo!("把 tool 存入注册表，key 是 tool.name()")
+        self.tools.insert(tool.name().to_owned(), Box::new(tool));
     }
 
     /// 根据名字查找并执行工具，返回 ToolResult。
@@ -64,14 +65,25 @@ impl ToolRegistry {
     ///   选项 B：Ok(ToolResult { content: "unknown tool" }) — 告诉 Claude 工具不存在
     ///   Claude Code 选的是哪个？为什么？
     pub fn dispatch(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
-        // TODO
-        todo!("查找 call.name 对应的工具，调用 execute，封装成 ToolResult")
+        let id = call.id.clone();
+        let Some(tool) = self.tools.get(&call.name) else {
+            return Ok(ToolResult {
+                content: "unknown tool".into(),
+                tool_use_id: id,
+            });
+        };
+
+        let result = tool.execute(&call.input)?;
+
+        Ok(ToolResult {
+            content: result,
+            tool_use_id: id,
+        })
     }
 
     /// 返回所有已注册工具的 schema 列表，用于构造 API 请求的 `tools` 字段。
     pub fn all_schemas(&self) -> Vec<serde_json::Value> {
-        // TODO
-        todo!("收集所有工具的 schema()")
+        self.tools.values().map(|tool| tool.schema()).collect()
     }
 }
 
@@ -83,7 +95,6 @@ impl ToolRegistry {
 /// Exercise 4：补全这个实现。
 impl crate::loop_::ToolExecutor for ToolRegistry {
     async fn execute(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
-        // TODO: 直接复用 self.dispatch(call)
-        todo!()
+        self.dispatch(call)
     }
 }

@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::tools::{ToolRegistry, bash::BashTool};
+    use crate::tools::{bash::BashTool, ToolRegistry};
     use crate::types::ToolUse;
 
     fn make_call(name: &str, input: serde_json::Value) -> ToolUse {
@@ -31,10 +31,17 @@ mod tests {
         let mut registry = ToolRegistry::new();
         registry.register(BashTool);
 
-        let call = make_call("bash", serde_json::json!({ "command": "cat /nonexistent_file_xyz" }));
+        let call = make_call(
+            "bash",
+            serde_json::json!({ "command": "cat /nonexistent_file_xyz" }),
+        );
         // 失败的命令不应该让 dispatch 返回 Err
         let result = registry.dispatch(&call);
-        assert!(result.is_ok(), "bash failure should be Ok, got: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "bash failure should be Ok, got: {:?}",
+            result
+        );
         // 但输出里应该有错误信息
         assert!(!result.unwrap().content.is_empty());
     }

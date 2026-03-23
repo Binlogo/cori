@@ -1,10 +1,11 @@
+use std::process::Command;
+
 /// Session 02 · BashTool
 ///
 /// 最基础的工具：在子进程里执行 shell 命令，返回 stdout + stderr。
 ///
 /// Exercise 1：先读懂 schema()，再实现 execute()。
 /// 注意 schema 的格式——这就是 Claude 看到的"工具说明书"。
-
 use super::Tool;
 
 pub struct BashTool;
@@ -27,7 +28,7 @@ impl Tool for BashTool {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing 'command' field"))?;
 
-        // TODO: 用 std::process::Command 执行命令
+        // 用 std::process::Command 执行命令
         //
         // 提示：
         //   Command::new("sh").arg("-c").arg(command)
@@ -36,7 +37,18 @@ impl Tool for BashTool {
         // exit code != 0 时，把 stderr 作为内容返回（而不是 Err），
         // 让 Claude 自己决定怎么处理错误。
 
-        todo!("execute: {command}")
+        let output = Command::new("sh").arg("-c").arg(command).output()?;
+
+        let mut out = String::from_utf8_lossy(&output.stdout).into_owned();
+        if !output.stderr.is_empty() {
+            out.push_str(&String::from_utf8_lossy(&output.stderr));
+        }
+        // 失败时加上 exit code，让 Claude 知道命令没成功
+        if !output.status.success() {
+            let code = output.status.code().unwrap_or(-1);
+            out.push_str(&format!("\n[exit code: {code}]"));
+        }
+        Ok(out)
     }
 
     /// 这个 schema 会被发送给 Claude，告诉它：
