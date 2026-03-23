@@ -1,0 +1,16 @@
+[package]
+name = "cori-web"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+cori-core = { path = "../cori-core" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+pulldown-cmark = "0.11"
