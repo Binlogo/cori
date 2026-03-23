@@ -82,24 +82,17 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
     }
 
     /// 运行 Agent Loop，返回最终的文本回答。
-    ///
-    /// Exercise 1：补全循环逻辑，让它能正确退出。
-    /// Exercise 3：加入 max_turns 检查。
     pub async fn run(&mut self, user_input: &str) -> Result<String, anyhow::Error> {
         let mut messages: Vec<Message> = vec![Message::user(user_input)];
+        self.run_turn(&mut messages).await
+    }
 
-        // 实现循环
-        //
-        // 每轮：
-        //   1. 调用 self.llm.send(&messages)
-        //   2. 检查 stop_reason
-        //      - "end_turn"  → 返回 response.text
-        //      - "tool_use"  → 执行所有 tool_calls，收集 ToolResult
-        //                      把结果追加到 messages（用 Message::tool_results()）
-        //                      继续下一轮
-        //      - 其他        → 返回错误或当作 end_turn 处理
-        //   3. 检查是否超过 max_turns
-
+    /// 多轮对话：在已有消息列表上运行一个用户回合。
+    ///
+    /// 调用前：调用方需已把用户消息 push 进 messages。
+    /// 返回后：messages 包含完整的对话历史（含本轮 assistant 回复）。
+    /// 这样下一次调用时，Claude 能看到完整上下文。
+    pub async fn run_turn(&mut self, messages: &mut Vec<Message>) -> Result<String, anyhow::Error> {
         let mut turn = 0;
         let mut last_input_tokens: u32 = 0;
         loop {
@@ -108,26 +101,23 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
             }
             turn += 1;
 
-            // Exercise 2：在发送前检查是否需要截断
-            // 用 self.context.should_truncate(last_input_tokens) 判断，
-            //       为真时调用 self.context.truncate(&mut messages)
-            //       截断后打印一条 tracing::warn! 告知用户上下文被压缩了
-
             if self.context.should_truncate(last_input_tokens) {
-                self.context.truncate(&mut messages);
+                self.context.truncate(messages);
                 tracing::warn!("Context truncate");
             }
 
-            let response = self.llm.send(&messages).await?;
+            let response = self.llm.send(messages).await?;
             last_input_tokens = response.usage.input_tokens;
 
             if response.stop_reason == "end_turn" {
-                return Ok(response.text.unwrap_or_default());
+                let text = response.text.unwrap_or_default();
+                // 把 assistant 回复加入历史，保证多轮对话上下文连续
+                messages.push(Message::assistant_text(&text));
+                return Ok(text);
             }
 
             if response.stop_reason == "tool_use" {
                 // 所有 tool_use 块合并进一条 assistant 消息（Claude API 要求）
-                // 如果拆成多条，真实 API 会报错：tool_use 和 tool_result 必须成对出现在相邻消息里
                 messages.push(Message::tool_uses(response.tool_calls.clone()));
 
                 let mut tool_results = vec![];

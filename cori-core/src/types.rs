@@ -80,4 +80,12 @@ impl Message {
             content: results.into_iter().map(Content::ToolResult).collect(),
         }
     }
+
+    /// 构造一条 assistant 文本消息（用于多轮对话维护历史）
+    pub fn assistant_text(text: impl Into<String>) -> Self {
+        Self {
+            role: Role::Assistant,
+            content: vec![Content::Text { text: text.into() }],
+        }
+    }
 }

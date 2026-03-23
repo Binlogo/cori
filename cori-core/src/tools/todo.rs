@@ -7,10 +7,7 @@
 /// Exercise 4：补全两个工具的 execute() 实现。
 use std::sync::{Arc, Mutex};
 
-use crate::{
-    planner::{Task, TaskList},
-    tools::Tool,
-};
+use crate::{planner::TaskList, tools::Tool};
 
 // ── TodoRead ──────────────────────────────────────────────────────────────────
 
@@ -31,7 +28,7 @@ impl Tool for TodoReadTool {
     }
 
     async fn execute(&self, _input: &serde_json::Value) -> Result<String, anyhow::Error> {
-        // TODO: 锁住 self.list，调用 display()，返回结果
+        // 锁住 self.list，调用 display()，返回结果
         // 如果任务列表为空，返回 "No tasks." 而不是空字符串
         let list = self.list.lock().unwrap();
         if list.tasks().is_empty() {

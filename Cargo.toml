@@ -16,3 +16,20 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.12", features = ["json"] }
 async-trait = "0.1"
+
+# ── CLI 主二进制 ───────────────────────────────────────────────────────────────
+
+[package]
+name = "cori"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+cori-core = { path = "cori-core" }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+rustyline = "14"
+colored = "2"
