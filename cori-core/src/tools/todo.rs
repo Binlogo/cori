@@ -24,17 +24,18 @@ impl TodoReadTool {
     }
 }
 
+#[async_trait::async_trait]
 impl Tool for TodoReadTool {
     fn name(&self) -> &str {
         "todo_read"
     }
 
-    fn execute(&self, _input: &serde_json::Value) -> Result<String, anyhow::Error> {
+    async fn execute(&self, _input: &serde_json::Value) -> Result<String, anyhow::Error> {
         // TODO: 锁住 self.list，调用 display()，返回结果
         // 如果任务列表为空，返回 "No tasks." 而不是空字符串
         let list = self.list.lock().unwrap();
         if list.tasks().is_empty() {
-            Ok("No  tasks".to_string())
+            Ok("No tasks".to_string())
         } else {
             Ok(list.display())
         }
@@ -64,6 +65,7 @@ impl TodoWriteTool {
     }
 }
 
+#[async_trait::async_trait]
 impl Tool for TodoWriteTool {
     fn name(&self) -> &str {
         "todo_write"
@@ -76,7 +78,7 @@ impl Tool for TodoWriteTool {
     ///     { "id": "2", "description": "...", "state": "in_progress" }
     ///   ]
     /// }
-    fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error> {
+    async fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error> {
         //   1. 从 input["tasks"] 反序列化出 Vec<Task>
         //      提示：serde_json::from_value(input["tasks"].clone())?
         //   2. 调用 self.list.lock().unwrap().write(tasks)?

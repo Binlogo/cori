@@ -5,8 +5,9 @@
 ///   - 每个工具实现 `Tool` trait
 ///   - `ToolRegistry` 负责注册和分发
 pub mod bash;
-mod tests;
+pub mod subagent;
 pub mod todo;
+mod tests;
 
 use std::collections::HashMap;
 
@@ -20,19 +21,17 @@ use crate::types::{ToolResult, ToolUse};
 /// Agent Loop 通过 `execute()` 实际调用工具。
 ///
 /// Exercise 1：理解这三个方法各自的职责，然后看 BashTool 的实现。
+/// Session 06：升级为 async，支持 SubagentTool 等需要 await 的工具。
+/// 对 BashTool / TodoTools 无影响——加 async 关键字，内部逻辑不变。
+///
+/// 为什么需要 #[async_trait]？
+///   `async fn` 在 trait 里会生成与 Self 绑定的关联 future 类型，
+///   导致 trait 不是 object-safe（无法用 Box<dyn Tool>）。
+///   async_trait 宏通过把 future 装箱（Box<dyn Future>）解决这个问题。
+#[async_trait::async_trait]
 pub trait Tool: Send + Sync {
-    /// 工具名称，必须与 Claude API 请求中的 `name` 字段完全一致。
     fn name(&self) -> &str;
-
-    /// 执行工具，返回文本结果。
-    ///
-    /// `input` 是 Claude 传来的 JSON 参数，格式由 `schema()` 约定。
-    fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error>;
-
-    /// 生成发送给 Claude 的 JSON Schema 描述。
-    ///
-    /// Claude 靠这个"知道"有哪些工具、每个工具需要什么参数。
-    /// 思考：如果 schema 写错了，会发生什么？
+    async fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error>;
     fn schema(&self) -> serde_json::Value;
 }
 
@@ -65,7 +64,7 @@ impl ToolRegistry {
     ///   选项 A：Err(...) — Agent Loop 崩溃
     ///   选项 B：Ok(ToolResult { content: "unknown tool" }) — 告诉 Claude 工具不存在
     ///   Claude Code 选的是哪个？为什么？
-    pub fn dispatch(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
+    pub async fn dispatch(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
         let id = call.id.clone();
         let Some(tool) = self.tools.get(&call.name) else {
             return Ok(ToolResult {
@@ -74,7 +73,7 @@ impl ToolRegistry {
             });
         };
 
-        let result = tool.execute(&call.input)?;
+        let result = tool.execute(&call.input).await?;
 
         Ok(ToolResult {
             content: result,
@@ -96,6 +95,6 @@ impl ToolRegistry {
 /// Exercise 4：补全这个实现。
 impl crate::loop_::ToolExecutor for ToolRegistry {
     async fn execute(&self, call: &ToolUse) -> Result<ToolResult, anyhow::Error> {
-        self.dispatch(call)
+        self.dispatch(call).await
     }
 }

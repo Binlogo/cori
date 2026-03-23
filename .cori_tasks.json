@@ -1,0 +1,17 @@
+[
+  {
+    "id": "1",
+    "description": "列出根目录的文件和文件夹",
+    "state": "completed"
+  },
+  {
+    "id": "2",
+    "description": "查看 Cargo.toml 的内容",
+    "state": "completed"
+  },
+  {
+    "id": "3",
+    "description": "统计 src 目录下有多少个 .rs 文件",
+    "state": "completed"
+  }
+]

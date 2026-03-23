@@ -10,6 +10,7 @@ use super::Tool;
 
 pub struct BashTool;
 
+#[async_trait::async_trait]
 impl Tool for BashTool {
     fn name(&self) -> &str {
         "bash"
@@ -23,7 +24,7 @@ impl Tool for BashTool {
     ///   1. 命令超时怎么办？（现在先不处理，记住这个问题）
     ///   2. 命令失败（exit code != 0）时应该返回 Err 还是把错误信息作为 Ok 返回？
     ///      Claude Code 的选择是？
-    fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error> {
+    async fn execute(&self, input: &serde_json::Value) -> Result<String, anyhow::Error> {
         let command = input["command"]
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing 'command' field"))?;

@@ -35,5 +35,10 @@ pub fn catalog() -> Vec<Lesson> {
             title: "Session 05 · Planning & Tasks",
             description: "Let Claude manage its own task list.",
         },
+        Lesson {
+            id: "06-subagents",
+            title: "Session 06 · Subagents",
+            description: "A subagent is just another AgentLoop with a fresh context.",
+        },
     ]
 }
