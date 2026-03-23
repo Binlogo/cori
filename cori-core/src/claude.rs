@@ -2,7 +2,6 @@
 ///
 /// 用真实的 HTTP 请求替换 MockLlm。
 /// 实现后，Cori 就能真正和 Claude 对话了。
-
 use crate::{
     loop_::{Llm, LlmResponse},
     types::{Message, ToolUse},
@@ -25,8 +24,13 @@ impl ClaudeLlm {
     ///   - 从 ANTHROPIC_API_KEY 环境变量读取 key（缺失时返回 Err）
     ///   - 默认 model = "claude-opus-4-6"
     pub fn from_env(tools: Vec<serde_json::Value>) -> Result<Self, anyhow::Error> {
-        // TODO
-        todo!("读取 ANTHROPIC_API_KEY，构造 ClaudeLlm")
+        let api_key = std::env::var("ANTHROPIC_API_KEY")?;
+        Ok(Self {
+            api_key,
+            model: "claude-opus-4-6".into(),
+            tools,
+            client: reqwest::Client::new(),
+        })
     }
 
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
@@ -63,6 +67,8 @@ enum ApiContent {
 
 // ── Llm trait 实现 ────────────────────────────────────────────────────────────
 
+const URL: &str = "https://api.anthropic.com/v1/messages";
+
 impl Llm for ClaudeLlm {
     async fn send(&self, messages: &[Message]) -> Result<LlmResponse, anyhow::Error> {
         // Exercise 2：构造请求 body
@@ -76,7 +82,12 @@ impl Llm for ClaudeLlm {
         // }
         //
         // 思考：max_tokens 设多少合适？太小会发生什么？
-        let body = todo!("构造 serde_json::json! 请求 body");
+        let body = serde_json::json!({
+            "model": self.model,
+            "max_tokens": 4096,
+            "tools": self.tools,
+            "messages": messages
+        });
 
         // Exercise 3：发送 HTTP 请求
         //
@@ -87,7 +98,22 @@ impl Llm for ClaudeLlm {
         //   content-type: application/json
         //
         // 提示：self.client.post(url).header(...).json(&body).send().await?
-        let response: ApiResponse = todo!("发送请求并解析 JSON");
+        let raw_reponse = self
+            .client
+            .post(URL)
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .json(&body)
+            .send()
+            .await?;
+
+        if !raw_reponse.status().is_success() {
+            let status = raw_reponse.status();
+            let text = raw_reponse.text().await?;
+            anyhow::bail!("API error {status}: {text}");
+        }
+
+        let response: ApiResponse = raw_reponse.json().await?;
 
         // Exercise 4：把 ApiResponse 转换成 LlmResponse
         //
@@ -108,12 +134,12 @@ fn parse_response(api: ApiResponse) -> Result<LlmResponse, anyhow::Error> {
     for block in api.content {
         match block {
             ApiContent::Text { text } => {
-                // TODO: 追加到 text_parts
-                todo!()
+                // 追加到 text_parts
+                text_parts.push(text);
             }
             ApiContent::ToolUse { id, name, input } => {
-                // TODO: 构造 ToolUse，追加到 tool_calls
-                todo!()
+                // 构造 ToolUse，追加到 tool_calls
+                tool_calls.push(ToolUse { id, name, input });
             }
         }
     }
