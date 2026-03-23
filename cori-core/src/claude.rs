@@ -72,6 +72,9 @@ enum ApiContent {
         name: String,
         input: serde_json::Value,
     },
+    /// 兜底：忽略 thinking 等模型特有的 block 类型
+    #[serde(other)]
+    Unknown,
 }
 
 // ── Llm trait 实现 ────────────────────────────────────────────────────────────
@@ -145,9 +148,9 @@ fn parse_response(api: ApiResponse) -> Result<LlmResponse, anyhow::Error> {
                 text_parts.push(text);
             }
             ApiContent::ToolUse { id, name, input } => {
-                // 构造 ToolUse，追加到 tool_calls
                 tool_calls.push(ToolUse { id, name, input });
             }
+            ApiContent::Unknown => {}
         }
     }
 
