@@ -25,5 +25,10 @@ pub fn catalog() -> Vec<Lesson> {
             title: "Session 03 · Real API Call",
             description: "Replace the mock — speak to Claude for real.",
         },
+        Lesson {
+            id: "04-context",
+            title: "Session 04 · Context & Token Management",
+            description: "Memory costs tokens — manage it or hit the wall.",
+        },
     ]
 }

@@ -6,7 +6,7 @@ use anyhow::anyhow;
 /// 实现 Agent Loop 的骨架。
 ///
 /// 这个文件是课程的核心。先通读注释，再动手填 TODO。
-use crate::types::{Message, ToolResult, ToolUse};
+use crate::{context::ContextManager, types::{Message, ToolResult, ToolUse}};
 
 // ── 错误类型 ──────────────────────────────────────────────────────────────────
 
@@ -19,6 +19,19 @@ pub enum LoopError {
 
 // ── LLM 响应（简化版）────────────────────────────────────────────────────────
 
+/// 本轮 API 调用消耗的 token 数（来自响应的 usage 字段）
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Usage {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
+impl Usage {
+    pub fn total(&self) -> u32 {
+        self.input_tokens + self.output_tokens
+    }
+}
+
 /// Claude API 返回的响应（简化，只保留本节需要的字段）
 #[derive(Debug)]
 pub struct LlmResponse {
@@ -26,6 +39,7 @@ pub struct LlmResponse {
     pub stop_reason: String,
     pub text: Option<String>,
     pub tool_calls: Vec<ToolUse>,
+    pub usage: Usage,
 }
 
 // ── Trait：可替换的 LLM 后端 ──────────────────────────────────────────────────
@@ -47,11 +61,11 @@ pub trait ToolExecutor {
 
 // ── AgentLoop ─────────────────────────────────────────────────────────────────
 
-/// Exercise 3：给 AgentLoop 加上安全阀
 pub struct AgentLoop<L: Llm, E: ToolExecutor> {
     llm: L,
     executor: E,
     max_turns: usize,
+    context: ContextManager,
 }
 
 impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
@@ -59,8 +73,8 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
         Self {
             llm,
             executor,
-            // 设置默认 max_turns（建议 25，思考：为什么不是无限？）
             max_turns: 25,
+            context: ContextManager::default_config(),
         }
     }
 
@@ -84,12 +98,20 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
         //   3. 检查是否超过 max_turns
 
         let mut turn = 0;
+        let mut last_input_tokens: u32 = 0;
         loop {
             if turn >= self.max_turns {
                 return Err(LoopError::MaxTurnsExceeded(turn).into());
             }
             turn += 1;
+
+            // Exercise 2：在发送前检查是否需要截断
+            // TODO: 用 self.context.should_truncate(last_input_tokens) 判断，
+            //       为真时调用 self.context.truncate(&mut messages)
+            //       截断后打印一条 tracing::warn! 告知用户上下文被压缩了
+
             let response = self.llm.send(&messages).await?;
+            last_input_tokens = response.usage.input_tokens;
 
             if response.stop_reason == "end_turn" {
                 return Ok(response.text.unwrap_or_default());

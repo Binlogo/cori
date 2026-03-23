@@ -16,3 +16,6 @@ pub mod tools;
 
 // Session 03
 pub mod claude;
+
+// Session 04
+pub mod context;

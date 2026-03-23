@@ -3,7 +3,7 @@
 /// 用真实的 HTTP 请求替换 MockLlm。
 /// 实现后，Cori 就能真正和 Claude 对话了。
 use crate::{
-    loop_::{Llm, LlmResponse},
+    loop_::{Llm, LlmResponse, Usage},
     types::{Message, ToolUse},
 };
 
@@ -54,10 +54,16 @@ impl ClaudeLlm {
 ///
 /// 文档：https://docs.anthropic.com/en/api/messages
 #[derive(serde::Deserialize, Debug)]
+struct ApiUsage {
+    input_tokens: u32,
+    output_tokens: u32,
+}
+
+#[derive(serde::Deserialize, Debug)]
 struct ApiResponse {
     stop_reason: String,
     content: Vec<ApiContent>,
-    // usage 字段暂时忽略，Session 04（Context Management）会用到
+    usage: ApiUsage,
 }
 
 /// content 数组里的每个元素
@@ -162,5 +168,9 @@ fn parse_response(api: ApiResponse) -> Result<LlmResponse, anyhow::Error> {
             Some(text_parts.join(""))
         },
         tool_calls,
+        usage: Usage {
+            input_tokens: api.usage.input_tokens,
+            output_tokens: api.usage.output_tokens,
+        },
     })
 }

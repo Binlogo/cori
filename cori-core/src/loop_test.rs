@@ -8,7 +8,7 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        loop_::{AgentLoop, EchoExecutor, LlmResponse, MockLlm},
+        loop_::{AgentLoop, EchoExecutor, LlmResponse, MockLlm, Usage},
         types::ToolUse,
     };
 
@@ -19,6 +19,7 @@ mod tests {
             stop_reason: "end_turn".into(),
             text: Some("Hello from mock!".into()),
             tool_calls: vec![],
+            usage: Usage::default(),
         }]);
 
         let mut agent = AgentLoop::new(llm, EchoExecutor);
@@ -39,11 +40,13 @@ mod tests {
                     name: "bash".into(),
                     input: serde_json::json!({ "command": "echo hi" }),
                 }],
+                usage: Usage::default(),
             },
             LlmResponse {
                 stop_reason: "end_turn".into(),
                 text: Some("Done.".into()),
                 tool_calls: vec![],
+                usage: Usage::default(),
             },
         ]);
 
@@ -66,6 +69,7 @@ mod tests {
                     name: "bash".into(),
                     input: serde_json::json!({}),
                 }],
+                usage: Usage::default(),
             })
             .collect();
 
