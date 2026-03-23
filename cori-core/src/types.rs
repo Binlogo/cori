@@ -14,7 +14,8 @@
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
-    // TODO: 填入两个变体
+    User,
+    Assistant,
 }
 
 // ── Content ───────────────────────────────────────────────────────────────────
@@ -37,10 +38,9 @@ pub struct ToolResult {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Content {
-    // TODO: 三个变体
-    // Text { text: String }
-    // ToolUse(ToolUse)
-    // ToolResult(ToolResult)
+    Text { text: String },
+    ToolUse(ToolUse),
+    ToolResult(ToolResult),
 }
 
 // ── Message ───────────────────────────────────────────────────────────────────
@@ -54,15 +54,27 @@ pub struct Message {
 impl Message {
     /// 构造一条用户文本消息
     pub fn user(text: impl Into<String>) -> Self {
-        // TODO
-        todo!("构造 role=User, content=[Content::Text] 的消息")
+        Self {
+            role: Role::User,
+            content: vec![Content::Text { text: text.into() }],
+        }
+    }
+
+    /// 构造一条Assistant的ToolUse消息
+    pub fn tool_use(call: ToolUse) -> Self {
+        Self {
+            role: Role::Assistant,
+            content: vec![Content::ToolUse(call)],
+        }
     }
 
     /// 把一批工具结果包装成一条 user 消息发回 Claude
     ///
     /// 思考：为什么多个 tool_result 可以合并在同一条消息里？
     pub fn tool_results(results: Vec<ToolResult>) -> Self {
-        // TODO
-        todo!("构造 role=User, content=[Content::ToolResult, ...] 的消息")
+        Self {
+            role: Role::User,
+            content: results.into_iter().map(Content::ToolResult).collect(),
+        }
     }
 }

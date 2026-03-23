@@ -1,8 +1,11 @@
+use std::sync::Mutex;
+
+use anyhow::anyhow;
+
 /// Session 01 · Exercise 1 & 3
 /// 实现 Agent Loop 的骨架。
 ///
 /// 这个文件是课程的核心。先通读注释，再动手填 TODO。
-
 use crate::types::{Message, ToolResult, ToolUse};
 
 // ── 错误类型 ──────────────────────────────────────────────────────────────────
@@ -48,7 +51,7 @@ pub trait ToolExecutor {
 pub struct AgentLoop<L: Llm, E: ToolExecutor> {
     llm: L,
     executor: E,
-    // TODO: 加入 max_turns: usize
+    max_turns: usize,
 }
 
 impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
@@ -56,7 +59,8 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
         Self {
             llm,
             executor,
-            // TODO: 设置默认 max_turns（建议 25，思考：为什么不是无限？）
+            // 设置默认 max_turns（建议 25，思考：为什么不是无限？）
+            max_turns: 25,
         }
     }
 
@@ -65,11 +69,9 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
     /// Exercise 1：补全循环逻辑，让它能正确退出。
     /// Exercise 3：加入 max_turns 检查。
     pub async fn run(&mut self, user_input: &str) -> Result<String, anyhow::Error> {
-        let mut messages: Vec<Message> = vec![
-            // TODO: 用 Message::user() 构造初始消息
-        ];
+        let mut messages: Vec<Message> = vec![Message::user(user_input)];
 
-        // TODO: 实现循环
+        // 实现循环
         //
         // 每轮：
         //   1. 调用 self.llm.send(&messages)
@@ -81,7 +83,30 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
         //      - 其他        → 返回错误或当作 end_turn 处理
         //   3. 检查是否超过 max_turns
 
-        todo!("实现 Agent Loop")
+        let mut turn = 0;
+        loop {
+            if turn >= self.max_turns {
+                return Err(LoopError::MaxTurnsExceeded(turn).into());
+            }
+            turn += 1;
+            let response = self.llm.send(&messages).await?;
+
+            if response.stop_reason == "end_turn" {
+                return Ok(response.text.unwrap_or_default());
+            }
+
+            if response.stop_reason == "tool_use" {
+                let mut tool_results = vec![];
+                for call in response.tool_calls {
+                    let tool_result = self.executor.execute(&call).await?;
+                    tool_results.push(tool_result);
+                    messages.push(Message::tool_use(call));
+                }
+                let tool_message = Message::tool_results(tool_results);
+                messages.push(tool_message);
+                continue;
+            }
+        }
     }
 }
 
@@ -91,22 +116,24 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
 /// 这样你不需要 API Key 就能测试循环逻辑。
 pub struct MockLlm {
     /// 每次调用 send() 弹出队列头部的响应
-    responses: std::collections::VecDeque<LlmResponse>,
+    responses: Mutex<std::collections::VecDeque<LlmResponse>>,
 }
 
 impl MockLlm {
     pub fn new(responses: Vec<LlmResponse>) -> Self {
         Self {
-            responses: responses.into(),
+            responses: Mutex::new(responses.into()),
         }
     }
 }
 
 impl Llm for MockLlm {
     async fn send(&self, _messages: &[Message]) -> Result<LlmResponse, anyhow::Error> {
-        // TODO: 从 self.responses 取出下一个响应
-        // 提示：需要把 &self 改成 &mut self，或者用 RefCell/Mutex，你来决定取舍
-        todo!("弹出并返回下一个预设响应")
+        let mut responses = self.responses.lock().unwrap();
+        if let Some(response) = responses.pop_front() {
+            return Ok(response);
+        }
+        Err(anyhow!("No reponse left"))
     }
 }
 

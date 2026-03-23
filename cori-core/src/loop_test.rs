@@ -5,12 +5,11 @@
 ///
 /// 运行方式：
 ///   cargo test -p cori-core
-
 #[cfg(test)]
 mod tests {
     use crate::{
         loop_::{AgentLoop, EchoExecutor, LlmResponse, MockLlm},
-        types::{ToolUse},
+        types::ToolUse,
     };
 
     /// 最简场景：LLM 第一轮就 end_turn，不调用任何工具
