@@ -13,7 +13,6 @@
 ///   - 行号为什么从 1 开始？
 ///   - write_file 为什么要整体覆盖而不是追加？
 ///   - grep 跳过 target/ 是硬编码对吗？
-
 use std::{fs, path::Path};
 
 use super::Tool;
@@ -46,8 +45,8 @@ impl Tool for ReadFileTool {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing 'path' field"))?;
 
-        let content = fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("cannot read {path}: {e}"))?;
+        let content =
+            fs::read_to_string(path).map_err(|e| anyhow::anyhow!("cannot read {path}: {e}"))?;
 
         let lines: Vec<&str> = content.lines().collect();
         let total = lines.len();
@@ -67,14 +66,17 @@ impl Tool for ReadFileTool {
             .unwrap_or(total);
 
         // Exercise 1：把 lines[from..to] 拼成带行号的字符串
-        //
-        //   for (i, line) in lines[from..to].iter().enumerate() {
-        //       out.push_str(&format!("{:>4} │ {}\n", from + i + 1, line));
-        //   }
-        //
-        // 把上面的注释取消，删掉下面这行，即完成练习。
 
-        anyhow::bail!("Exercise 1: implement read_file (see comments above)")
+        // 防御：start_line 超出范围或 start > end 时返回空
+        let from = from.min(total);
+        let to = to.max(from);
+
+        let mut out = String::new();
+        for (i, line) in lines[from..to].iter().enumerate() {
+            out.push_str(&format!("{:>4} │ {}\n", from + i + 1, line));
+        }
+
+        Ok(out)
     }
 
     fn schema(&self) -> serde_json::Value {
@@ -135,18 +137,14 @@ impl Tool for WriteFileTool {
             .ok_or_else(|| anyhow::anyhow!("missing 'content' field"))?;
 
         // Exercise 2：创建父目录（如不存在），然后写入文件
-        //
-        //   if let Some(parent) = Path::new(path).parent() {
-        //       if !parent.as_os_str().is_empty() {
-        //           fs::create_dir_all(parent)?;
-        //       }
-        //   }
-        //   fs::write(path, content)?;
-        //   Ok(format!("Written {} bytes to {path}.", content.len()))
-        //
-        // 把注释取消，删掉下面这行，即完成练习。
 
-        anyhow::bail!("Exercise 2: implement write_file (see comments above)")
+        if let Some(parent) = Path::new(path).parent() {
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+        fs::write(path, content)?;
+        Ok(format!("Written {} bytes to {path}.", content.len()))
     }
 
     fn schema(&self) -> serde_json::Value {
@@ -203,24 +201,18 @@ impl Tool for GlobTool {
             .ok_or_else(|| anyhow::anyhow!("missing 'pattern' field"))?;
 
         // Exercise 3：用 glob::glob 遍历，收集文件路径并排序
-        //
-        //   let mut paths: Vec<String> = vec![];
-        //   for entry in glob::glob(pattern)? {
-        //       if let Ok(path) = entry {
-        //           if path.is_file() {
-        //               paths.push(path.display().to_string());
-        //           }
-        //       }
-        //   }
-        //   paths.sort();
-        //   if paths.is_empty() {
-        //       return Ok("No files found.".into());
-        //   }
-        //   Ok(paths.join("\n"))
-        //
-        // 把注释取消，删掉下面这行，即完成练习。
 
-        anyhow::bail!("Exercise 3: implement glob (see comments above)")
+        let mut paths: Vec<String> = vec![];
+        for path in (glob::glob(pattern)?).flatten() {
+            if path.is_file() {
+                paths.push(path.display().to_string());
+            }
+        }
+        paths.sort();
+        if paths.is_empty() {
+            return Ok("No files found.".into());
+        }
+        Ok(paths.join("\n"))
     }
 
     fn schema(&self) -> serde_json::Value {
@@ -255,22 +247,16 @@ pub struct GrepTool;
 /// 思考：这里硬编码 target/ 合理吗？
 ///   对于 Cori 这个 Rust 项目，合理。但如果要做通用工具，
 ///   应该让 Claude 传一个 ignore 列表过来。
-fn grep_recursive(
-    dir: &Path,
-    pattern: &str,
-    ext_filter: Option<&str>,
-    results: &mut Vec<String>,
-) {
-    let Ok(entries) = fs::read_dir(dir) else { return };
+fn grep_recursive(dir: &Path, pattern: &str, ext_filter: Option<&str>, results: &mut Vec<String>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
 
     for entry in entries.flatten() {
         let path = entry.path();
 
         if path.is_dir() {
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("");
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
             if name.starts_with('.') || name == "target" {
                 continue;
             }
@@ -278,10 +264,7 @@ fn grep_recursive(
         } else {
             // 文件扩展名过滤
             if let Some(ext) = ext_filter {
-                let file_ext = path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .unwrap_or("");
+                let file_ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                 if file_ext != ext {
                     continue;
                 }
@@ -291,12 +274,7 @@ fn grep_recursive(
             if let Ok(content) = fs::read_to_string(&path) {
                 for (i, line) in content.lines().enumerate() {
                     if line.contains(pattern) {
-                        results.push(format!(
-                            "{}:{}: {}",
-                            path.display(),
-                            i + 1,
-                            line.trim()
-                        ));
+                        results.push(format!("{}:{}: {}", path.display(), i + 1, line.trim()));
                     }
                 }
             }
@@ -332,30 +310,24 @@ impl Tool for GrepTool {
         let dir = input["path"].as_str().unwrap_or(".");
 
         // 把 "*.rs" 转成 ext_filter = Some("rs")
-        let ext_filter: Option<&str> = input["glob"]
-            .as_str()
-            .and_then(|g| g.strip_prefix("*."));
+        let ext_filter: Option<&str> = input["glob"].as_str().and_then(|g| g.strip_prefix("*."));
 
         // Exercise 4：调用 grep_recursive，处理结果数量限制
-        //
-        //   let mut results: Vec<String> = vec![];
-        //   grep_recursive(Path::new(dir), pattern, ext_filter, &mut results);
-        //   results.sort();
-        //
-        //   if results.is_empty() {
-        //       return Ok("No matches found.".into());
-        //   }
-        //
-        //   const MAX: usize = 50;
-        //   let mut out = results[..results.len().min(MAX)].join("\n");
-        //   if results.len() > MAX {
-        //       out.push_str(&format!("\n... {} more matches", results.len() - MAX));
-        //   }
-        //   Ok(out)
-        //
-        // 把注释取消，删掉下面这行，即完成练习。
 
-        anyhow::bail!("Exercise 4: implement grep (see comments above)")
+        let mut results: Vec<String> = vec![];
+        grep_recursive(Path::new(dir), pattern, ext_filter, &mut results);
+        results.sort();
+
+        if results.is_empty() {
+            return Ok("No matches found.".into());
+        }
+
+        const MAX: usize = 50;
+        let mut out = results[..results.len().min(MAX)].join("\n");
+        if results.len() > MAX {
+            out.push_str(&format!("\n... {} more matches", results.len() - MAX));
+        }
+        Ok(out)
     }
 
     fn schema(&self) -> serde_json::Value {
