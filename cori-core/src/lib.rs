@@ -18,3 +18,6 @@ pub mod claude;
 
 // Session 04
 pub mod context;
+
+// Session 05
+pub mod planner;

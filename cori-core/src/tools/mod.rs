@@ -5,6 +5,7 @@
 ///   - 每个工具实现 `Tool` trait
 ///   - `ToolRegistry` 负责注册和分发
 pub mod bash;
+pub mod todo;
 mod tests;
 
 use std::collections::HashMap;

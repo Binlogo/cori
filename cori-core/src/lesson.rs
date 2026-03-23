@@ -30,5 +30,10 @@ pub fn catalog() -> Vec<Lesson> {
             title: "Session 04 · Context & Token Management",
             description: "Memory costs tokens — manage it or hit the wall.",
         },
+        Lesson {
+            id: "05-planning",
+            title: "Session 05 · Planning & Tasks",
+            description: "Let Claude manage its own task list.",
+        },
     ]
 }
