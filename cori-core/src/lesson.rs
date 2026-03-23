@@ -20,5 +20,10 @@ pub fn catalog() -> Vec<Lesson> {
             title: "Session 02 · Tool Dispatch",
             description: "Tools aren't magic — they're a dispatch map.",
         },
+        Lesson {
+            id: "03-real-api",
+            title: "Session 03 · Real API Call",
+            description: "Replace the mock — speak to Claude for real.",
+        },
     ]
 }

@@ -96,14 +96,16 @@ impl<L: Llm, E: ToolExecutor> AgentLoop<L, E> {
             }
 
             if response.stop_reason == "tool_use" {
+                // 所有 tool_use 块合并进一条 assistant 消息（Claude API 要求）
+                // 如果拆成多条，真实 API 会报错：tool_use 和 tool_result 必须成对出现在相邻消息里
+                messages.push(Message::tool_uses(response.tool_calls.clone()));
+
                 let mut tool_results = vec![];
-                for call in response.tool_calls {
-                    let tool_result = self.executor.execute(&call).await?;
-                    messages.push(Message::tool_use(call));
-                    tool_results.push(tool_result);
+                for call in &response.tool_calls {
+                    let result = self.executor.execute(call).await?;
+                    tool_results.push(result);
                 }
-                let tool_message = Message::tool_results(tool_results);
-                messages.push(tool_message);
+                messages.push(Message::tool_results(tool_results));
                 continue;
             }
         }

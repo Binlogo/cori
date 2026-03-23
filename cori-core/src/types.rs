@@ -60,11 +60,14 @@ impl Message {
         }
     }
 
-    /// 构造一条Assistant的ToolUse消息
-    pub fn tool_use(call: ToolUse) -> Self {
+    /// 把一批工具调用请求包装成一条 assistant 消息。
+    ///
+    /// Claude API 要求：同一轮的所有 tool_use 必须在同一条 assistant 消息里，
+    /// 对应的 tool_result 也必须在紧随其后的同一条 user 消息里。
+    pub fn tool_uses(calls: Vec<ToolUse>) -> Self {
         Self {
             role: Role::Assistant,
-            content: vec![Content::ToolUse(call)],
+            content: calls.into_iter().map(Content::ToolUse).collect(),
         }
     }
 

@@ -13,3 +13,6 @@ mod loop_test;
 
 // Session 02
 pub mod tools;
+
+// Session 03
+pub mod claude;
