@@ -17,7 +17,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", get(index))
-        .route("/lessons/{id}", get(lesson));
+        .route("/lessons/:id", get(lesson));
 
     let addr = "127.0.0.1:3000";
     tracing::info!("Cori running at http://{}", addr);
