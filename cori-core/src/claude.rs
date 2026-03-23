@@ -26,13 +26,16 @@ impl ClaudeLlm {
     ///
     /// 必填：ANTHROPIC_API_KEY
     /// 可选：ANTHROPIC_BASE_URL（默认 https://api.anthropic.com）
+    /// 可选：ANTHROPIC_MODEL（默认 claude-opus-4-6）
     pub fn from_env(tools: Vec<serde_json::Value>) -> Result<Self, anyhow::Error> {
         let api_key = std::env::var("ANTHROPIC_API_KEY")?;
         let base_url = std::env::var("ANTHROPIC_BASE_URL")
             .unwrap_or_else(|_| "https://api.anthropic.com".into());
+        let model = std::env::var("ANTHROPIC_MODEL")
+            .unwrap_or_else(|_| "claude-opus-4-6".into());
         Ok(Self {
             api_key,
-            model: "claude-opus-4-6".into(),
+            model,
             tools,
             client: reqwest::Client::new(),
             url: format!("{base_url}/v1/messages"),
