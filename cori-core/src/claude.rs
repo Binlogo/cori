@@ -15,21 +15,27 @@ pub struct ClaudeLlm {
     /// 已注册工具的 schema 列表，来自 ToolRegistry::all_schemas()
     tools: Vec<serde_json::Value>,
     client: reqwest::Client,
+    /// Messages API 端点
+    /// 默认 https://api.anthropic.com/v1/messages
+    /// 通过 ANTHROPIC_BASE_URL 覆盖，可兼容第三方 Anthropic 兼容服务（如 MiniMax）
+    url: String,
 }
 
 impl ClaudeLlm {
-    /// 从环境变量读取 API Key，构造 ClaudeLlm。
+    /// 从环境变量读取配置，构造 ClaudeLlm。
     ///
-    /// Exercise 1：补全这个构造函数。
-    ///   - 从 ANTHROPIC_API_KEY 环境变量读取 key（缺失时返回 Err）
-    ///   - 默认 model = "claude-opus-4-6"
+    /// 必填：ANTHROPIC_API_KEY
+    /// 可选：ANTHROPIC_BASE_URL（默认 https://api.anthropic.com）
     pub fn from_env(tools: Vec<serde_json::Value>) -> Result<Self, anyhow::Error> {
         let api_key = std::env::var("ANTHROPIC_API_KEY")?;
+        let base_url = std::env::var("ANTHROPIC_BASE_URL")
+            .unwrap_or_else(|_| "https://api.anthropic.com".into());
         Ok(Self {
             api_key,
             model: "claude-opus-4-6".into(),
             tools,
             client: reqwest::Client::new(),
+            url: format!("{base_url}/v1/messages"),
         })
     }
 
@@ -67,8 +73,6 @@ enum ApiContent {
 
 // ── Llm trait 实现 ────────────────────────────────────────────────────────────
 
-const URL: &str = "https://api.anthropic.com/v1/messages";
-
 impl Llm for ClaudeLlm {
     async fn send(&self, messages: &[Message]) -> Result<LlmResponse, anyhow::Error> {
         // Exercise 2：构造请求 body
@@ -100,7 +104,7 @@ impl Llm for ClaudeLlm {
         // 提示：self.client.post(url).header(...).json(&body).send().await?
         let raw_reponse = self
             .client
-            .post(URL)
+            .post(&self.url)
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", "2023-06-01")
             .json(&body)
