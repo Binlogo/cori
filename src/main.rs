@@ -1,3 +1,6 @@
+// Session 08 · Streaming
+// 把 agent.run_turn() 换成 agent.run_turn_streaming()，
+// 传入一个打印回调，感受逐字输出的效果。
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex};
 
@@ -207,22 +210,36 @@ async fn main() -> anyhow::Result<()> {
                 messages.push(Message::user(&input));
                 println!();
 
-                // 运行 agent（工具调用会在 CliExecutor 中实时打印）
-                match agent.run_turn(&mut messages).await {
+                // Session 08：使用流式输出
+                // on_text 回调：每收到一个文本 token 就调用，立即刷新 stdout。
+                let on_text = |text: &str| {
+                    print!("{text}");
+                    io::stdout().flush().ok();
+                };
+
+                // 记录本轮开始前的消息数，用于判断本轮是否有工具调用
+                let msg_len_before = messages.len();
+
+                match agent.run_turn_streaming(&mut messages, on_text).await {
                     Ok(response) => {
-                        // 如果本轮有工具调用，打印分隔线再显示最终回复
-                        let has_tool_calls = messages.iter().any(|m| {
+                        // 流式模式下，文本已在 on_text 里逐字打印，
+                        // 这里只需打印换行和工具调用的分隔线。
+                        //
+                        // 只检查本轮新增的消息（msg_len_before 之后），
+                        // 避免历史中的旧工具调用干扰判断。
+                        let has_tool_calls = messages[msg_len_before..].iter().any(|m| {
                             m.content
                                 .iter()
                                 .any(|c| matches!(c, cori_core::types::Content::ToolUse(_)))
                         });
                         if has_tool_calls {
                             print_separator();
+                            print_response(&response);
+                        } else {
+                            println!("\n");
                         }
-                        print_response(&response);
                     }
                     Err(e) => {
-                        // 出错时移除未完成的用户消息，避免历史污染
                         messages.pop();
                         print_error(&e.to_string());
                     }

@@ -21,3 +21,6 @@ pub mod context;
 
 // Session 05
 pub mod planner;
+
+// Session 08
+pub mod streaming;

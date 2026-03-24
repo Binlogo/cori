@@ -159,6 +159,84 @@ impl Llm for MockLlm {
     }
 }
 
+// ── Session 08：StreamingLlm trait ────────────────────────────────────────────
+
+/// 流式 LLM 扩展 trait —— 实现者可将文本逐字推送给回调。
+///
+/// 使用 supertrait 约束：实现 StreamingLlm 的类型同时也必须实现 Llm。
+/// 这样 AgentLoop 可以在有流式能力时用流式，没有时退回 Llm::send()。
+#[allow(async_fn_in_trait)]
+pub trait StreamingLlm: Llm {
+    /// 流式发送消息：每生成一个文本 token 就调用一次 on_text。
+    ///
+    /// 返回值与 Llm::send() 完全兼容——调用方不需要区分流式/非流式结果。
+    async fn send_streaming<F>(
+        &self,
+        messages: &[Message],
+        on_text: F,
+    ) -> Result<LlmResponse, anyhow::Error>
+    where
+        F: Fn(&str) + Send;
+}
+
+impl<L: Llm + StreamingLlm, E: ToolExecutor> AgentLoop<L, E> {
+    /// 流式版本的 run_turn：
+    ///   - 第一次 LLM 调用用流式（on_text 逐字打印）
+    ///   - 工具调用后的后续轮次用普通 send()（工具结果通常不需要流式）
+    ///
+    /// Session 08 · Exercise：CLI 里调用这个方法，感受流式输出的效果。
+    pub async fn run_turn_streaming<F>(
+        &mut self,
+        messages: &mut Vec<Message>,
+        on_text: F,
+    ) -> Result<String, anyhow::Error>
+    where
+        F: Fn(&str) + Send + Clone,
+    {
+        let mut turn = 0;
+        let mut last_input_tokens: u32 = 0;
+        let mut first_call = true;
+
+        loop {
+            if turn >= self.max_turns {
+                return Err(LoopError::MaxTurnsExceeded(turn).into());
+            }
+            turn += 1;
+
+            if self.context.should_truncate(last_input_tokens) {
+                self.context.truncate(messages);
+                tracing::warn!("Context truncate");
+            }
+
+            // 第一次调用使用流式；工具回调后续轮次使用普通 send()
+            let response = if first_call {
+                first_call = false;
+                self.llm.send_streaming(messages, on_text.clone()).await?
+            } else {
+                self.llm.send(messages).await?
+            };
+            last_input_tokens = response.usage.input_tokens;
+
+            if response.stop_reason == "end_turn" {
+                let text = response.text.unwrap_or_default();
+                messages.push(Message::assistant_text(&text));
+                return Ok(text);
+            }
+
+            if response.stop_reason == "tool_use" {
+                messages.push(Message::tool_uses(response.tool_calls.clone()));
+                let mut tool_results = vec![];
+                for call in &response.tool_calls {
+                    let result = self.executor.execute(call).await?;
+                    tool_results.push(result);
+                }
+                messages.push(Message::tool_results(tool_results));
+                continue;
+            }
+        }
+    }
+}
+
 /// 一个假的执行器，直接返回固定字符串。
 pub struct EchoExecutor;
 

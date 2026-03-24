@@ -31,8 +31,7 @@ impl ClaudeLlm {
         let api_key = std::env::var("ANTHROPIC_API_KEY")?;
         let base_url = std::env::var("ANTHROPIC_BASE_URL")
             .unwrap_or_else(|_| "https://api.anthropic.com".into());
-        let model = std::env::var("ANTHROPIC_MODEL")
-            .unwrap_or_else(|_| "claude-opus-4-6".into());
+        let model = std::env::var("ANTHROPIC_MODEL").unwrap_or_else(|_| "claude-opus-4-6".into());
         Ok(Self {
             api_key,
             model,
@@ -45,6 +44,28 @@ impl ClaudeLlm {
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
         self
+    }
+
+    // ── streaming.rs 需要访问这些字段 ─────────────────────────────────────────
+
+    pub(crate) fn model(&self) -> &str {
+        &self.model
+    }
+
+    pub(crate) fn tools(&self) -> &[serde_json::Value] {
+        &self.tools
+    }
+
+    pub(crate) fn api_key(&self) -> &str {
+        &self.api_key
+    }
+
+    pub(crate) fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub(crate) fn http_client(&self) -> &reqwest::Client {
+        &self.client
     }
 }
 
