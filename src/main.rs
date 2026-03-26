@@ -13,6 +13,7 @@ use cori_core::{
     planner::TaskList,
     tools::{
         bash::BashTool,
+        edit::EditFileTool,
         fs::{GlobTool, GrepTool, ReadFileTool, WriteFileTool},
         todo::{TodoReadTool, TodoWriteTool},
         ToolRegistry,
@@ -158,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
     // Session 07：文件系统工具
     registry.register(ReadFileTool);
     registry.register(WriteFileTool);
+    registry.register(EditFileTool);  // Session 09
     registry.register(GlobTool);
     registry.register(GrepTool);
 

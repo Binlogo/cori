@@ -5,6 +5,7 @@
 ///   - 每个工具实现 `Tool` trait
 ///   - `ToolRegistry` 负责注册和分发
 pub mod bash;
+pub mod edit;
 pub mod fs;
 pub mod subagent;
 mod tests;
