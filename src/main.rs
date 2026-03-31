@@ -10,12 +10,12 @@ use rustyline::{error::ReadlineError, DefaultEditor};
 use cori_core::{
     claude::ClaudeLlm,
     loop_::AgentLoop,
-    planner::TaskList,
+    planner::TaskGraph,
     tools::{
         bash::BashTool,
         edit::EditFileTool,
         fs::{GlobTool, GrepTool, ReadFileTool, WriteFileTool},
-        todo::{TodoReadTool, TodoWriteTool},
+        task::{TaskCreateTool, TaskGetTool, TaskListTool, TaskUpdateTool},
         ToolRegistry,
     },
     types::{Message, ToolResult, ToolUse},
@@ -151,11 +151,13 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // 构建工具注册表
-    let task_list = Arc::new(Mutex::new(TaskList::load(".cori_tasks.json")?));
+    let task_graph = Arc::new(Mutex::new(TaskGraph::load(".tasks")?));
     let mut registry = ToolRegistry::new();
     registry.register(BashTool);
-    registry.register(TodoReadTool::new(Arc::clone(&task_list)));
-    registry.register(TodoWriteTool::new(Arc::clone(&task_list)));
+    registry.register(TaskListTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskCreateTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskGetTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskUpdateTool::new(Arc::clone(&task_graph)));
     // Session 07：文件系统工具
     registry.register(ReadFileTool);
     registry.register(WriteFileTool);

@@ -8,6 +8,7 @@ pub mod bash;
 pub mod edit;
 pub mod fs;
 pub mod subagent;
+pub mod task;
 mod tests;
 pub mod todo;
 

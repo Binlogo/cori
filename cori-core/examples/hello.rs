@@ -3,13 +3,13 @@ use std::sync::{Arc, Mutex};
 use cori_core::{
     claude::ClaudeLlm,
     loop_::AgentLoop,
-    planner::TaskList,
+    planner::TaskGraph,
     tools::{
         ToolRegistry,
         bash::BashTool,
         fs::{GlobTool, GrepTool, ReadFileTool, WriteFileTool},
         subagent::SubagentTool,
-        todo::{TodoReadTool, TodoWriteTool},
+        task::{TaskCreateTool, TaskGetTool, TaskListTool, TaskUpdateTool},
     },
 };
 
@@ -19,12 +19,14 @@ async fn main() -> anyhow::Result<()> {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    let task_list = Arc::new(Mutex::new(TaskList::load(".cori_tasks.json")?));
+    let task_graph = Arc::new(Mutex::new(TaskGraph::load(".tasks")?));
 
     let mut registry = ToolRegistry::new();
     registry.register(BashTool);
-    registry.register(TodoReadTool::new(Arc::clone(&task_list)));
-    registry.register(TodoWriteTool::new(Arc::clone(&task_list)));
+    registry.register(TaskListTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskCreateTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskGetTool::new(Arc::clone(&task_graph)));
+    registry.register(TaskUpdateTool::new(Arc::clone(&task_graph)));
     registry.register(SubagentTool);
     // Session 07：新增文件系统工具
     registry.register(ReadFileTool);
