@@ -1,0 +1,59 @@
+# cori.toml — Cori agent configuration
+#
+# Copy this file to .cori.toml in your project root (project-level config)
+# or to ~/.config/cori/config.toml (user-level config).
+#
+# Resolution order (later layers override earlier):
+#   1. Compiled defaults
+#   2. ~/.config/cori/config.toml
+#   3. .cori.toml  (project root)
+#   4. Environment variables  (ANTHROPIC_API_KEY, CORI_MODEL, …)
+#   5. CLI flags  (--model, --allow-tools, …)
+
+# ── Provider ───────────────────────────────────────────────────────────────────
+
+[provider]
+# LLM backend: "claude" | "openai_compat" | "mock"
+kind = "claude"
+
+# Anthropic API key. Prefer ANTHROPIC_API_KEY env var over storing here.
+# api_key = "sk-ant-..."
+
+# API base URL. Override to use a proxy or OpenAI-compatible endpoint.
+base_url = "https://api.anthropic.com"
+
+# Model identifier.
+model = "claude-opus-4-6"
+
+# Maximum tokens to generate per response.
+max_tokens = 8192
+
+# HTTP request timeout in seconds.
+timeout_secs = 120
+
+# ── Context ────────────────────────────────────────────────────────────────────
+
+[context]
+# Trigger context truncation when input token count exceeds this value.
+# Increase for long tasks; decrease to reduce API cost.
+token_threshold = 80000
+
+# Number of recent messages to retain after truncation.
+# The original user request (messages[0]) is always kept.
+keep_last = 20
+
+# ── Agent ──────────────────────────────────────────────────────────────────────
+
+[agent]
+# Maximum agent loop turns before aborting with MaxTurnsExceeded.
+max_turns = 25
+
+# Tools to always allow without asking the user.
+# allow_tools = ["read_file", "glob", "grep"]
+
+# Tools to always deny.
+# deny_tools = ["bash"]
+
+# Headless mode: treat all Ask-level permissions as Deny.
+# Useful in CI pipelines. Overridden by --headless flag.
+headless = false

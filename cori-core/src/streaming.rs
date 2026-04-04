@@ -60,6 +60,7 @@ pub(crate) enum StreamEvent {
         delta: Delta,
     },
     ContentBlockStop {
+        #[allow(dead_code)]
         index: usize,
     },
     MessageDelta {
@@ -85,6 +86,7 @@ pub(crate) struct StartUsage {
 /// content_block_start 里的 block 类型
 #[derive(serde::Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(dead_code)]
 pub(crate) enum ContentBlock {
     Text { text: String },
     ToolUse { id: String, name: String },

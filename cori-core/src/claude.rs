@@ -41,6 +41,25 @@ impl ClaudeLlm {
         })
     }
 
+    /// Construct from explicit config values (used by cori-server where
+    /// the provider config is read once at startup and shared across requests).
+    pub fn new(
+        api_key: impl Into<String>,
+        base_url: impl Into<String>,
+        model: impl Into<String>,
+        tools: Vec<serde_json::Value>,
+    ) -> Self {
+        let base_url = base_url.into();
+        let url = format!("{base_url}/v1/messages");
+        Self {
+            api_key: api_key.into(),
+            model: model.into(),
+            tools,
+            client: reqwest::Client::new(),
+            url,
+        }
+    }
+
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
         self

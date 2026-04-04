@@ -1,21 +1,22 @@
 [package]
-name = "cori-core"
+name = "cori-server"
 version.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "cori-server"
+path = "src/main.rs"
+
 [dependencies]
+cori-core = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
-thiserror = { workspace = true }
-reqwest = { workspace = true }
+tracing-subscriber = { workspace = true }
+axum = { workspace = true }
+tower-http = { workspace = true }
 futures-util = { workspace = true }
 async-trait = { workspace = true }
-glob = "0.3"
-
-[dev-dependencies]
-tokio = { workspace = true }
-tempfile = "3"
-tracing-subscriber = { workspace = true }
+tokio-stream = "0.1"

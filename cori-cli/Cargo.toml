@@ -1,0 +1,18 @@
+[package]
+name = "cori-cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "cori-cli"
+path = "src/main.rs"
+
+[dependencies]
+cori-core = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+rustyline = "14"
+colored = "2"
